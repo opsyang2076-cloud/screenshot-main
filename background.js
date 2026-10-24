@@ -13,12 +13,8 @@ function buildMenu() {
   });
 }
 
-chrome.runtime.onInstalled.addListener(async function (details) {
+chrome.runtime.onInstalled.addListener(function () {
   buildMenu();
-  if (details.reason === 'install') {
-    const cfg = await chrome.storage.local.get({ apiKey: '' });
-    if (!cfg.apiKey) chrome.runtime.openOptionsPage();
-  }
 });
 
 chrome.runtime.onStartup.addListener(buildMenu);

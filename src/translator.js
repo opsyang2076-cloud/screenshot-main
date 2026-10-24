@@ -1,12 +1,15 @@
 /**
  * DSH 翻译 — 翻译核心
- * 兼容 OpenAI Chat Completions 协议，默认走 DeepSeek 官方 API。
- * 任何暴露 /chat/completions 的端点（含 Nous Hermes 系列）都可直接替换。
+ * 两套引擎：
+ *   online —— MyMemory 免费接口，不消耗 token，无需 API Key
+ *   model  —— 任意 OpenAI Chat Completions 兼容端点（DeepSeek / Hermes / vLLM / Ollama）
  */
 (function (root) {
   'use strict';
 
   var DEFAULTS = {
+    engine: 'online',
+    onlineEmail: '',
     apiKey: '',
     baseUrl: 'https://api.deepseek.com',
     model: 'deepseek-chat',
@@ -75,58 +78,71 @@
     return '请求失败（HTTP ' + status + '）' + (detail ? '：' + detail : '');
   }
 
+  async function requestModel(cfg, text, srcCode, tgtCode, signal) {
+    var res = await fetch(normalizeBase(cfg.baseUrl), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + cfg.apiKey
+      },
+      body: JSON.stringify({
+        model: cfg.model || DEFAULTS.model,
+        messages: buildMessages(text, srcCode, tgtCode),
+        temperature: 0.2,
+        stream: false
+      }),
+      signal: signal
+    });
+
+    var payload = null;
+    try { payload = await res.json(); } catch (_) { /* 非 JSON 响应 */ }
+
+    if (!res.ok) {
+      var err = new Error(mapError(res.status, payload));
+      err.code = 'HTTP_' + res.status;
+      throw err;
+    }
+
+    var content = payload && payload.choices && payload.choices[0] &&
+      payload.choices[0].message && payload.choices[0].message.content;
+    if (!content) throw new Error('返回内容为空，请换个模型或稍后重试（empty response）');
+    return tidy(content);
+  }
+
   /**
    * 翻译一段文本
-   * @returns {Promise<string>}
+   * @returns {Promise<{text: string, via: 'online'|'model', detected: string}>}
    */
   async function translate(text, srcCode, tgtCode) {
     var cfg = await loadConfig();
-    if (!cfg.apiKey) {
-      var e = new Error('尚未配置 API Key，请点击右上角设置填写（API key not configured）');
-      e.code = 'NO_KEY';
-      throw e;
+    var engine = cfg.engine === 'model' ? 'model' : 'online';
+
+    if (engine === 'model' && !cfg.apiKey) {
+      var keyErr = new Error('当前使用模型翻译，但尚未配置 API Key。请到设置页填写，或切换回在线翻译（API key not configured）');
+      keyErr.code = 'NO_KEY';
+      throw keyErr;
     }
 
     var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, cfg.timeout || DEFAULTS.timeout);
+    var timeout = cfg.timeout || DEFAULTS.timeout;
+    var timer = setTimeout(function () { controller.abort(); }, timeout);
 
     try {
-      var res = await fetch(normalizeBase(cfg.baseUrl), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + cfg.apiKey
-        },
-        body: JSON.stringify({
-          model: cfg.model || DEFAULTS.model,
-          messages: buildMessages(text, srcCode, tgtCode),
-          temperature: 0.2,
-          stream: false
-        }),
-        signal: controller.signal
-      });
-
-      var payload = null;
-      try { payload = await res.json(); } catch (_) { /* 非 JSON 响应 */ }
-
-      if (!res.ok) {
-        var err = new Error(mapError(res.status, payload));
-        err.code = 'HTTP_' + res.status;
-        throw err;
+      if (engine === 'model') {
+        var out = await requestModel(cfg, text, srcCode, tgtCode, controller.signal);
+        return { text: out, via: 'model', detected: '' };
       }
 
-      var content = payload && payload.choices && payload.choices[0] &&
-        payload.choices[0].message && payload.choices[0].message.content;
-      if (!content) {
-        throw new Error('返回内容为空，请换个模型或稍后重试（empty response）');
-      }
-      return tidy(content);
+      var online = await root.DSH_ONLINE.translate(text, srcCode, tgtCode, controller.signal, cfg.onlineEmail);
+      return { text: online.text, via: 'online', detected: online.detected || '' };
     } catch (err) {
       if (err.name === 'AbortError') {
         throw new Error('请求超时，请稍后重试（request timeout）');
       }
       if (err instanceof TypeError) {
-        throw new Error('网络无法连接，请检查 Base URL 或代理设置（network error）');
+        throw new Error(engine === 'model'
+          ? '网络无法连接，请检查 Base URL 或代理设置（network error）'
+          : '无法连接在线翻译服务，请检查网络（network error）');
       }
       throw err;
     } finally {

@@ -2,10 +2,10 @@
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-4d6bfe)
 ![Languages](https://img.shields.io/badge/languages-200-4d6bfe)
-![Chrome](https://img.shields.io/badge/Chrome-116%2B-4d6bfe)
+![Engines](https://img.shields.io/badge/engines-online%20%2B%20LLM-4d6bfe)
 ![License](https://img.shields.io/badge/license-MIT-4d6bfe)
 
-A minimal browser translation extension: **200 languages**, powered by your own model (DeepSeek / Hermes / vLLM / Ollama / any OpenAI-compatible endpoint).
+A minimal browser translation extension: **200 languages**, with two interchangeable engines — a free online translator, or your own model.
 
 The UI follows the familiar Baidu Translate flow — pick languages, paste text, hit translate. Nothing else.
 
@@ -15,11 +15,25 @@ The UI follows the familiar Baidu Translate flow — pick languages, paste text,
 
 ---
 
+## Two engines
+
+| | Online (default) | Local / self-hosted model |
+| --- | --- | --- |
+| Setup | Works out of the box, no API key | Fill in API key / Base URL / model |
+| Cost | Free, no tokens burned | Billed per token (or your own GPU) |
+| Backend | MyMemory public API | Any OpenAI Chat Completions endpoint |
+| Quality | Fine for everyday short text | Better — tone, terminology, context |
+| Length | Auto-split into 460-char chunks | 5000 chars in a single request |
+| Quota | ~5,000 chars/day anonymous, ~50,000 with an email | Depends on your account |
+
+Switch with one click at the top of the settings page; the choice is saved automatically.
+
 ## Why this one
 
 - **Translation only** — no accounts, no ads, no analytics, no third-party relay server
+- **Works before you configure anything** — the free online engine is the default
+- **Cheap when you want cheap, good when you want good** — flip between a free API and your own model
 - **200 languages** — from English and Japanese to Cebuano, Northern Sami and Walloon
-- **Bring your own model** — DeepSeek's official API, Nous Hermes, an internal vLLM box or a local Ollama
 - **Your key stays local** — the API key lives in `chrome.storage.local` and is only sent to the endpoint you configure
 - **No build step** — plain HTML/CSS/JS, edit and reload
 
@@ -27,15 +41,16 @@ The UI follows the familiar Baidu Translate flow — pick languages, paste text,
 
 | Feature | Description |
 | --- | --- |
-| 200 languages | Full built-in language library, the 20 most used pinned on top |
+| Dual engine | Free online / self-hosted model, switchable in settings |
+| 200 languages | Full built-in library, the 20 most used pinned on top |
 | Language search | Filter by Chinese name, English name or language code |
-| Auto detect | Let the model detect the source language, or lock it manually |
-| Swap | Swap source/target; the translation is moved back into the input box for round-trip work |
+| Auto detect | Pick "Detect language"; the online engine also reports what it detected |
+| Swap | Swap source/target; the translation moves back into the input for round-trip work |
 | Translate | Button, or `Ctrl + Enter` (`⌘ + Enter` on macOS) |
 | Context menu | Select text on a page → right click → "Translate selection with DSH" |
 | Result actions | Copy, read aloud with system TTS, export as `.txt` |
 | Character counter | 5000 characters per request, counted live |
-| Error messages | 401 / 402 / 404 / 429 / timeout / network failures each explained |
+| Error messages | Unsupported language, quota exceeded, timeout and network failures each explained |
 
 ## Install
 
@@ -49,7 +64,19 @@ The UI follows the familiar Baidu Translate flow — pick languages, paste text,
 
 > Keep the unzipped folder in place — moving or deleting it breaks the extension.
 
-### Configuration
+![Settings · online engine](docs/screenshot-settings.png)
+
+## Configuration
+
+### Online engine (default, start here)
+
+Nothing to fill in. Optionally add an email to raise the daily quota:
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| Contact email | empty | Optional. MyMemory allows ~5,000 chars/day anonymous, ~50,000 with an email |
+
+### Local / self-hosted model
 
 | Setting | Default | Notes |
 | --- | --- | --- |
@@ -57,18 +84,17 @@ The UI follows the familiar Baidu Translate flow — pick languages, paste text,
 | Base URL | `https://api.deepseek.com` | `/v1` is optional; `/chat/completions` is appended automatically |
 | Model | `deepseek-chat` | Prefer instruction-tuned chat models; reasoning models are much slower |
 | Timeout | 60 s | 5–300 s |
-| Default target | Chinese (Simplified) | Used when the panel opens |
+
+![Settings · model engine](docs/screenshot-settings-model.png)
 
 Click **Test connection** — if it returns a translated sentence, the pipeline works.
-
-![Settings page](docs/screenshot-settings.png)
 
 ## Usage
 
 1. Click the blue toolbar icon to open the panel
 2. Choose the source language (auto detect by default) and the target language
 3. Type or paste text, then click **Translate** or press `Ctrl + Enter`
-4. The result appears below; the four buttons at the bottom copy, read aloud, export or open settings
+4. The result appears below; the status bar shows the engine, elapsed time and detected language
 
 **Language search** focuses automatically — typing `jap`, `日语` or `ja` finds Japanese. Use `↑ ↓` to move, `Enter` to pick, `Esc` to close.
 
@@ -76,7 +102,7 @@ Click **Test connection** — if it returns a translated sentence, the pipeline 
 
 ## Using other models
 
-The extension only needs an endpoint implementing OpenAI's `POST /chat/completions`. Common setups:
+The model engine only needs an endpoint implementing OpenAI's `POST /chat/completions`:
 
 | Service | Base URL | Model name |
 | --- | --- | --- |
@@ -99,10 +125,13 @@ Notes:
 
 The full list lives in [`src/languages.js`](src/languages.js) as `[code, Chinese name, English name]` tuples — edit it and the panel, search and settings dropdown all follow.
 
+> Coverage of the online engine depends on MyMemory's language-pair table. If you see "the online engine does not support this language", switch to the model engine.
+
 ## Privacy
 
 - No data collection, no remote scripts or fonts
-- Text is sent only to **the API endpoint you configure**
+- **Online engine**: text is sent to `api.mymemory.translated.net`, a third-party public service, with no identity attached; if you set an email it is submitted only as a quota parameter
+- **Model engine**: text goes only to **the API endpoint you configure**
 - The API key is stored in local browser storage and used solely in that request header
 - "Restore defaults" wipes all local data of this extension
 
@@ -114,13 +143,16 @@ deepseek-hermes-translator/
 ├── popup.html             # Translation panel
 ├── popup.css
 ├── popup.js               # Dropdowns, translation, copy / speak / export
-├── options.html           # Settings page
+├── options.html           # Settings (engine switch)
 ├── options.css
 ├── options.js
 ├── background.js          # Context menu, first-run onboarding
 ├── src/
 │   ├── languages.js       # 200-language library
-│   └── translator.js      # Config, Chat Completions call, error mapping
+│   ├── online.js          # Online engine: chunking + MyMemory calls
+│   └── translator.js      # Engine routing, model calls, error mapping
+├── tests/
+│   └── split.test.js      # Chunking unit tests
 ├── icons/                 # Icons + generator script (stdlib Python)
 └── docs/                  # Screenshots
 ```
@@ -131,11 +163,13 @@ No npm, no bundler:
 
 1. Edit the code → open `chrome://extensions` → click reload on the extension card
 2. Debug the panel: right click inside it → Inspect
-3. Regenerate icons: `python icons/make_icons.py` (standard library only)
+3. Run chunking tests: `node tests/split.test.js`
+4. Regenerate icons: `python icons/make_icons.py` (standard library only)
 
 ## Known limitations
 
-- 5000 characters per request; split longer text
+- 5000 characters per request; the online engine sends 460-char chunks sequentially, so long text is slower
+- The online engine is bound by MyMemory's free quota — wait a day or switch to the model engine
 - Non-streaming: long input returns all at once
 - Read-aloud uses system TTS; rare languages may have no matching voice
 - Not published on the Chrome Web Store — load it in developer mode

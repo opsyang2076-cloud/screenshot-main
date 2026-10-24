@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "DSH 在线翻译 - DeepSeek Hermes Translator",
   "version": "1.0.0",
-  "description": "极简在线翻译：支持 200 种语言，接入 DeepSeek / Hermes 等 OpenAI 兼容大模型。",
+  "description": "极简在线翻译：200 种语言，免费在线引擎与 DeepSeek / Hermes 等任意 OpenAI 兼容大模型双引擎，一键切换。",
   "action": {
     "default_title": "DSH 在线翻译",
     "default_popup": "popup.html",

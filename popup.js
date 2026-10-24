@@ -209,13 +209,17 @@
 
     try {
       if (state.src !== 'auto') state.lastSource = state.src;
-      var out = await API.translate(text, state.src, state.tgt);
-      state.result = out;
-      el.result.textContent = out;
+      var res = await API.translate(text, state.src, state.tgt);
+      state.result = res.text;
+      el.result.textContent = res.text;
       el.placeholder.hidden = true;
+
+      var srcName = state.src === 'auto'
+        ? (res.detected ? '检测到 ' + (I18N.byCode[res.detected] ? I18N.byCode[res.detected].zh : res.detected) : '自动检测')
+        : (I18N.byCode[state.src] ? I18N.byCode[state.src].zh : state.src);
+      var tgtName = I18N.byCode[state.tgt] ? I18N.byCode[state.tgt].zh : state.tgt;
       el.status.textContent = ((Date.now() - started) / 1000).toFixed(1) + 's · ' +
-        (I18N.byCode[state.src] ? I18N.byCode[state.src].zh : '') + ' → ' +
-        (I18N.byCode[state.tgt] ? I18N.byCode[state.tgt].zh : '');
+        (res.via === 'model' ? '模型' : '在线') + ' · ' + srcName + ' → ' + tgtName;
     } catch (err) {
       el.status.textContent = '';
       showError(err.message || '翻译失败，请重试');
@@ -356,6 +360,10 @@
     srcSelect.set(state.src);
     tgtSelect.set(state.tgt);
     if (state.src !== 'auto') state.lastSource = state.src;
+
+    document.getElementById('brandSub').textContent = cfg.engine === 'model'
+      ? '200 种语言 · 模型翻译 · ' + (cfg.model || 'deepseek-chat')
+      : '200 种语言 · 在线翻译（免 Key）';
 
     // 打开面板后清除右键菜单留下的角标
     try { await chrome.action.setBadgeText({ text: '' }); } catch (_) { /* 忽略 */ }
