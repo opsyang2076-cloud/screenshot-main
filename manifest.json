@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "DSH 在线翻译 - DeepSeek Hermes Translator",
+  "version": "1.0.0",
+  "description": "极简在线翻译：支持 200 种语言，接入 DeepSeek / Hermes 等 OpenAI 兼容大模型。",
+  "action": {
+    "default_title": "DSH 在线翻译",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "contextMenus"],
+  "host_permissions": ["https://*/*", "http://*/*"],
+  "minimum_chrome_version": "116"
+}

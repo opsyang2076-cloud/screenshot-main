@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSH 在线翻译</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">译</span>
+    <span class="brand-text">
+      <strong>DSH 在线翻译</strong>
+      <em>200 种语言 · DeepSeek / Hermes</em>
+    </span>
+  </div>
+  <button id="btnSettings" class="ghost-btn" type="button" title="设置">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.11a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.11A1.7 1.7 0 0 0 4.67 8.8a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.44a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.11a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.11a1.7 1.7 0 0 0-1.49 1Z"/></svg>
+  </button>
+</header>
+
+<section class="lang-bar">
+  <div class="select" data-role="src">
+    <button class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+      <span class="select-label">自动检测</span>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="select-panel" hidden>
+      <input class="select-search" type="text" placeholder="搜索语言 / Search language">
+      <ul class="select-list" role="listbox"></ul>
+      <p class="select-empty" hidden>没有匹配的语言</p>
+    </div>
+  </div>
+
+  <button id="btnSwap" class="swap-btn" type="button" title="交换语言">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13l-3.2-3.2"/><path d="M20 16H7l3.2 3.2"/></svg>
+  </button>
+
+  <div class="select" data-role="tgt">
+    <button class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+      <span class="select-label">简体中文</span>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="select-panel" hidden>
+      <input class="select-search" type="text" placeholder="搜索语言 / Search language">
+      <ul class="select-list" role="listbox"></ul>
+      <p class="select-empty" hidden>没有匹配的语言</p>
+    </div>
+  </div>
+</section>
+
+<section class="pane pane-input">
+  <textarea id="source" maxlength="5000" spellcheck="false"
+            placeholder="请输入或粘贴文字（Ctrl + Enter 立即翻译）"></textarea>
+  <div class="pane-foot">
+    <span class="counter"><span id="charCount">0</span>/5000</span>
+    <button id="btnClear" class="text-btn" type="button">清空</button>
+    <button id="btnTranslate" class="primary-btn" type="button">
+      <span class="btn-label">立即翻译</span>
+      <span class="spinner" hidden></span>
+    </button>
+  </div>
+</section>
+
+<section class="pane pane-output">
+  <div id="resultWrap" class="result-wrap">
+    <p id="result" class="result" aria-live="polite"></p>
+    <p id="placeholder" class="placeholder">译文将显示在这里</p>
+  </div>
+  <div id="errorBar" class="error-bar" hidden>
+    <span id="errorText"></span>
+    <button id="btnErrorClose" type="button" aria-label="关闭提示">×</button>
+  </div>
+  <div class="pane-foot pane-foot-end">
+    <span id="status" class="status"></span>
+  </div>
+</section>
+
+<nav class="quickbar">
+  <button class="chip" type="button" data-action="copy">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
+    <span class="chip-label">复制译文</span>
+  </button>
+  <button class="chip" type="button" data-action="speak">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h3l5 4V5L7 9H4Z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg>
+    <span class="chip-label">朗读译文</span>
+  </button>
+  <button class="chip" type="button" data-action="save">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="m8 11 4 4 4-4"/><path d="M5 19h14"/></svg>
+    <span class="chip-label">保存 TXT</span>
+  </button>
+  <button class="chip" type="button" data-action="settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    <span class="chip-label">高级设置</span>
+  </button>
+</nav>
+
+<script src="src/languages.js"></script>
+<script src="src/translator.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

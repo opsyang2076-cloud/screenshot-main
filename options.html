@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>DSH 在线翻译 — 设置</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<main class="wrap">
+  <header class="head">
+    <span class="logo" aria-hidden="true">译</span>
+    <div>
+      <h1>DSH 在线翻译 · 设置</h1>
+      <p class="sub">兼容 OpenAI Chat Completions 协议，可接 DeepSeek、Hermes 或任意自建端点</p>
+    </div>
+  </header>
+
+  <form id="form" class="card" autocomplete="off">
+    <div class="field">
+      <label for="apiKey">API Key <span class="req">必填</span></label>
+      <div class="inline">
+        <input id="apiKey" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" spellcheck="false">
+        <button id="toggleKey" class="mini-btn" type="button">显示</button>
+      </div>
+      <p class="hint">DeepSeek 开放平台申请：platform.deepseek.com。密钥仅保存在本机浏览器，不会上传到任何第三方。</p>
+    </div>
+
+    <div class="field">
+      <label for="baseUrl">Base URL</label>
+      <input id="baseUrl" type="text" placeholder="https://api.deepseek.com" spellcheck="false">
+      <p class="hint">结尾可带或不带 <code>/v1</code>，插件会自动补全 <code>/chat/completions</code>。</p>
+    </div>
+
+    <div class="field">
+      <label for="model">模型</label>
+      <input id="model" type="text" placeholder="deepseek-chat" spellcheck="false" list="modelList">
+      <datalist id="modelList">
+        <option value="deepseek-chat"></option>
+        <option value="deepseek-reasoner"></option>
+        <option value="Hermes-3-Llama-3.1-70B"></option>
+        <option value="Nous-Hermes-2-Mixtral-8x7B-DPO"></option>
+      </datalist>
+      <p class="hint">翻译任务建议使用指令跟随强的对话模型；推理模型会明显更慢。</p>
+    </div>
+
+    <div class="field">
+      <label for="timeout">请求超时（秒）</label>
+      <input id="timeout" type="number" min="5" max="300" step="5" value="60">
+    </div>
+
+    <div class="field">
+      <label for="tgtLang">默认目标语言</label>
+      <select id="tgtLang"></select>
+    </div>
+
+    <div class="actions">
+      <button id="btnSave" class="primary" type="submit">保存设置</button>
+      <button id="btnTest" class="secondary" type="button">测试连接</button>
+      <button id="btnReset" class="ghost" type="button">恢复默认</button>
+      <span id="msg" class="msg" role="status"></span>
+    </div>
+  </form>
+
+  <footer class="foot">
+    <p>支持 <strong id="langCount">200</strong> 种语言 · 快捷键 <kbd>Ctrl</kbd> + <kbd>Enter</kbd> 立即翻译</p>
+    <p class="muted">MIT License · DeepSeek Hermes Translator</p>
+  </footer>
+</main>
+
+<script src="src/languages.js"></script>
+<script src="src/translator.js"></script>
+<script src="options.js"></script>
+</body>
+</html>
