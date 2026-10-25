@@ -22,13 +22,20 @@ chrome.runtime.onStartup.addListener(buildMenu);
 chrome.contextMenus.onClicked.addListener(async function (info) {
   if (info.menuItemId !== MENU_ID || !info.selectionText) return;
 
-  await chrome.storage.session.set({ pendingText: info.selectionText });
+  try {
+    await chrome.storage.session.set({ pendingText: info.selectionText });
+  } catch (_) { /* 会话存储不可用时，仅退回角标提醒 */ }
+
+  // Chrome 127+ 允许在用户手势中直接打开 popup；不可用或失败则显示角标
+  if (typeof chrome.action.openPopup === 'function') {
+    try {
+      await chrome.action.openPopup();
+      return;
+    } catch (_) { /* 继续走角标 */ }
+  }
 
   try {
-    // Chrome 127+ 允许在用户手势中直接打开 popup
-    await chrome.action.openPopup();
-  } catch (_) {
-    await chrome.action.setBadgeBackgroundColor({ color: '#4D6BFE' });
+    await chrome.action.setBadgeBackgroundColor({ color: '#4d6bfe' });
     await chrome.action.setBadgeText({ text: '1' });
-  }
+  } catch (_) { /* 忽略 */ }
 });

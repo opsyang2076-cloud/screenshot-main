@@ -1,6 +1,7 @@
 /**
  * DSH 翻译 — 在线引擎（免费，无需 API Key）
  * 后端：MyMemory 公开翻译 API（单次上限 500 字符，自动分段）
+ * v1.1.0：分段请求改为并发池（默认 3 路），单段失败自动重试一次，长文明显提速
  */
 (function (root) {
   'use strict';
@@ -8,6 +9,8 @@
   var ENDPOINT = 'https://api.mymemory.translated.net/get';
   var MAX_CHUNK = 460;   // 官方上限 500 字符，留出安全余量
   var MAX_TOTAL = 5000;
+  var CONCURRENCY = 3;   // 并发分段数
+  var RETRY_DELAY = 300; // 重试前等待（毫秒）
 
   /** 按句末标点切分，保证每段不超过 limit */
   function splitText(text, limit) {
@@ -35,6 +38,50 @@
 
     if (rest.length) chunks.push(rest);
     return chunks;
+  }
+
+  /**
+   * 并发池：按 limit 个并发执行异步任务工厂，结果按提交顺序返回。
+   * 任一任务失败后不再派发新任务，待在途任务结算后抛出首个错误。
+   * @param {Array<() => Promise>} factories 异步任务工厂
+   * @param {number} limit 最大并发数
+   * @returns {Promise<Array>} 与 factories 顺序一致的结果数组
+   */
+  function runPool(factories, limit) {
+    return new Promise(function (resolve, reject) {
+      var results = new Array(factories.length);
+      var next = 0;
+      var active = 0;
+      var failed = false;
+      var lim = Math.max(1, Math.min(limit || 1, factories.length));
+
+      function settle() {
+        if (active === 0) {
+          if (failed) reject(results.error);
+          else resolve(results);
+        }
+      }
+
+      function launch() {
+        if (failed || next >= factories.length) return settle();
+        var i = next++;
+        active++;
+        Promise.resolve().then(factories[i]).then(function (value) {
+          if (!failed) results[i] = value;
+        }, function (err) {
+          if (!failed) {
+            failed = true;
+            results.error = err;
+          }
+        }).then(function () {
+          active--;
+          launch();
+          settle();
+        });
+      }
+
+      for (var k = 0; k < lim; k++) launch();
+    });
   }
 
   function fail(message, code) {
@@ -85,38 +132,65 @@
   }
 
   /**
+   * 单段请求 + 失败重试一次。
+   * 语言/额度/长度这类确定性错误不重试；网络抖动、HTTP 5xx 等瞬时错误才重试。
+   */
+  async function chunkWithRetry(text, from, to, email, signal) {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await requestChunk(text, from, to, email, signal);
+      } catch (err) {
+        attempt++;
+        var aborted = (signal && signal.aborted) || err.name === 'AbortError';
+        var deterministic = err.code && err.code !== 'ONLINE';
+        if (attempt >= 2 || aborted || deterministic) throw err;
+        await new Promise(function (resolve) { setTimeout(resolve, RETRY_DELAY); });
+      }
+    }
+  }
+
+  /**
    * @param {string} text 原文
    * @param {string} srcCode 源语言，'auto' 表示自动检测
    * @param {string} tgtCode 目标语言
    * @param {AbortSignal} signal
    * @param {string} email 可选，MyMemory 的联系邮箱（提升免费额度）
+   * @returns {Promise<{text: string, detected: string, chunks: number}>}
    */
   async function translate(text, srcCode, tgtCode, signal, email) {
-    if (!text) return { text: '', detected: '' };
+    if (!text) return { text: '', detected: '', chunks: 0 };
     if (text.length > MAX_TOTAL) {
       throw fail('在线翻译单次上限 ' + MAX_TOTAL + ' 字符，请分段翻译', 'LENGTH');
     }
 
     var from = !srcCode || srcCode === 'auto' ? 'Autodetect' : srcCode;
-    if (from === tgtCode) return { text: text, detected: tgtCode };
+    if (from === tgtCode) return { text: text, detected: tgtCode, chunks: 1 };
 
     var chunks = splitText(text, MAX_CHUNK);
+    var results = await runPool(chunks.map(function (chunk) {
+      return function () {
+        if (!chunk.trim()) return Promise.resolve({ text: chunk, detected: '' });
+        return chunkWithRetry(chunk, from, tgtCode, email, signal);
+      };
+    }), CONCURRENCY);
+
     var out = [];
     var detected = '';
-
-    for (var i = 0; i < chunks.length; i++) {
-      if (!chunks[i].trim()) { out.push(chunks[i]); continue; }
-      var piece = await requestChunk(chunks[i], from, tgtCode, email, signal);
-      if (piece.detected) detected = piece.detected;
-      out.push(piece.text);
+    for (var i = 0; i < results.length; i++) {
+      if (results[i].detected) detected = results[i].detected;
+      out.push(results[i].text);
     }
 
-    return { text: out.join(''), detected: detected };
+    return { text: out.join(''), detected: detected, chunks: chunks.length };
   }
 
   root.DSH_ONLINE = {
     MAX_CHUNK: MAX_CHUNK,
+    MAX_TOTAL: MAX_TOTAL,
+    CONCURRENCY: CONCURRENCY,
     splitText: splitText,
+    runPool: runPool,
     translate: translate
   };
 })(typeof window !== 'undefined' ? window : globalThis);

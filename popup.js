@@ -186,6 +186,30 @@
     el.btnTranslate.querySelector('.spinner').hidden = !on;
   }
 
+  /** 剪贴板写入，带 execCommand 降级（权限受限或无焦点时仍可复制） */
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy') ? resolve() : reject(new Error('copy rejected'));
+      } finally {
+        ta.remove();
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    try { speechSynthesis.cancel(); } catch (_) { /* 忽略 */ }
+  }
+
   /* ---------------- 翻译 ---------------- */
 
   async function doTranslate() {
@@ -218,8 +242,9 @@
         ? (res.detected ? '检测到 ' + (I18N.byCode[res.detected] ? I18N.byCode[res.detected].zh : res.detected) : '自动检测')
         : (I18N.byCode[state.src] ? I18N.byCode[state.src].zh : state.src);
       var tgtName = I18N.byCode[state.tgt] ? I18N.byCode[state.tgt].zh : state.tgt;
+      var seg = res.via === 'online' && res.chunks > 1 ? ' · ' + res.chunks + ' 段并发' : '';
       el.status.textContent = ((Date.now() - started) / 1000).toFixed(1) + 's · ' +
-        (res.via === 'model' ? '模型' : '在线') + ' · ' + srcName + ' → ' + tgtName;
+        (res.via === 'model' ? '模型' : '在线') + seg + ' · ' + srcName + ' → ' + tgtName;
     } catch (err) {
       el.status.textContent = '';
       showError(err.message || '翻译失败，请重试');
@@ -256,6 +281,7 @@
     state.result = '';
     el.placeholder.hidden = false;
     el.status.textContent = '';
+    stopSpeaking();
     clearError();
     el.source.focus();
   });
@@ -308,19 +334,24 @@
     }
 
     if (action === 'copy') {
-      navigator.clipboard.writeText(state.result).then(function () {
+      copyText(state.result).then(function () {
         flash(btn, '已复制');
       }).catch(function () { showError('复制失败，请手动选择译文'); });
     }
 
     if (action === 'speak') {
       try {
-        speechSynthesis.cancel();
-        var utter = new SpeechSynthesisUtterance(state.result);
-        utter.lang = tgtSelect.get();
-        utter.rate = 1;
-        speechSynthesis.speak(utter);
-        flash(btn, '朗读中');
+        // 开关式朗读：正在播放时再点一次即停止
+        if (speechSynthesis.speaking || speechSynthesis.pending) {
+          stopSpeaking();
+          flash(btn, '已停止');
+        } else {
+          var utter = new SpeechSynthesisUtterance(state.result);
+          utter.lang = tgtSelect.get();
+          utter.rate = 1;
+          speechSynthesis.speak(utter);
+          flash(btn, '朗读中');
+        }
       } catch (_) {
         showError('当前环境不支持语音朗读');
       }
@@ -362,8 +393,8 @@
     if (state.src !== 'auto') state.lastSource = state.src;
 
     document.getElementById('brandSub').textContent = cfg.engine === 'model'
-      ? '200 种语言 · 模型翻译 · ' + (cfg.model || 'deepseek-chat')
-      : '200 种语言 · 在线翻译（免 Key）';
+      ? I18N.list.length + ' 种语言 · 模型翻译 · ' + (cfg.model || 'deepseek-chat')
+      : I18N.list.length + ' 种语言 · 在线翻译（免 Key）';
 
     // 打开面板后清除右键菜单留下的角标
     try { await chrome.action.setBadgeText({ text: '' }); } catch (_) { /* 忽略 */ }

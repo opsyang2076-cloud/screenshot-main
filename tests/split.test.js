@@ -1,10 +1,12 @@
-// splitText 单元测试
+// splitText / runPool 单元测试 —— 运行：node tests/split.test.js
 const fs = require('fs');
-const code = fs.readFileSync('src/online.js', 'utf8');
+const path = require('path');
+const code = fs.readFileSync(path.join(__dirname, '..', 'src', 'online.js'), 'utf8');
 const g = {};
 new Function('globalThis', code)(g);
 
 const split = g.DSH_ONLINE.splitText;
+const pool = g.DSH_ONLINE.runPool;
 const MAX = g.DSH_ONLINE.MAX_CHUNK;
 
 let pass = 0, fail = 0;
@@ -41,5 +43,33 @@ const c5 = split(multi, MAX);
 check('含换行不超限', c5.every(s => s.length <= MAX));
 check('含换行无损', c5.join('') === multi);
 
-console.log('\n结果:', pass, 'passed,', fail, 'failed');
-process.exit(fail ? 1 : 0);
+// 6-8. 并发池：顺序保持、并发上限、错误传播
+(async function () {
+  let concurrent = 0, peak = 0;
+  const tasks = Array.from({ length: 9 }, (_, i) => async () => {
+    concurrent++; peak = Math.max(peak, concurrent);
+    await new Promise(r => setTimeout(r, 20));
+    concurrent--;
+    return i * 2;
+  });
+
+  const res = await pool(tasks, 3);
+  check('runPool 顺序保持', res.join(',') === '0,2,4,6,8,10,12,14,16', JSON.stringify(res));
+  check('runPool 并发上限(3)', peak <= 3, 'peak=' + peak);
+
+  try {
+    await pool([async () => 1, async () => { throw new Error('boom'); }, async () => 3], 3);
+    check('runPool 错误传播', false, '未抛出错误');
+  } catch (e) {
+    check('runPool 错误传播', e.message === 'boom', e.message);
+  }
+
+  const empty = await pool([], 3);
+  check('runPool 空任务表', Array.isArray(empty) && empty.length === 0);
+
+  console.log('\n结果:', pass, 'passed,', fail, 'failed');
+  process.exit(fail ? 1 : 0);
+})().catch(function (e) {
+  console.error('测试执行异常:', e);
+  process.exit(1);
+});

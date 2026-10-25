@@ -44,14 +44,18 @@
     return u;
   }
 
-  /** 去掉模型偶尔加的前缀/引号包装 */
+  /** 去掉模型偶尔加的前缀/引号包装（引号必须成对，避免误删正文首尾字符） */
   function tidy(text) {
     var out = String(text || '').trim();
     out = out.replace(/^(译文|翻译结果|翻译|Translation|Translated text)\s*[:：]\s*/i, '');
-    if (out.length > 1 && /^["“](.*)["”]$/s.test(out)) {
-      out = out.replace(/^["“](.*)["”]$/s, '$1');
+    var pairs = [['"', '"'], ['“', '”'], ['‘', '’']];
+    for (var i = 0; i < pairs.length; i++) {
+      if (out.length > 1 && out.charAt(0) === pairs[i][0] && out.charAt(out.length - 1) === pairs[i][1]) {
+        out = out.slice(1, -1).trim();
+        break;
+      }
     }
-    return out.trim();
+    return out;
   }
 
   function buildMessages(text, srcCode, tgtCode) {
@@ -130,11 +134,11 @@
     try {
       if (engine === 'model') {
         var out = await requestModel(cfg, text, srcCode, tgtCode, controller.signal);
-        return { text: out, via: 'model', detected: '' };
+        return { text: out, via: 'model', detected: '', chunks: 1 };
       }
 
       var online = await root.DSH_ONLINE.translate(text, srcCode, tgtCode, controller.signal, cfg.onlineEmail);
-      return { text: online.text, via: 'online', detected: online.detected || '' };
+      return { text: online.text, via: 'online', detected: online.detected || '', chunks: online.chunks || 0 };
     } catch (err) {
       if (err.name === 'AbortError') {
         throw new Error('请求超时，请稍后重试（request timeout）');

@@ -1,6 +1,7 @@
 # DSH Translator · DeepSeek Hermes Translator
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-4d6bfe)
+![Version](https://img.shields.io/badge/version-1.1.0-4d6bfe)
 ![Languages](https://img.shields.io/badge/languages-200-4d6bfe)
 ![Engines](https://img.shields.io/badge/engines-online%20%2B%20LLM-4d6bfe)
 ![License](https://img.shields.io/badge/license-MIT-4d6bfe)
@@ -44,6 +45,7 @@ Switch with one click at the top of the settings page; the choice is saved autom
 | Dual engine | Free online / self-hosted model, switchable in settings |
 | 200 languages | Full built-in library, the 20 most used pinned on top |
 | Language search | Filter by Chinese name, English name or language code |
+| Concurrent chunks | Long text is split into 460-char chunks fetched 3 at a time, with one automatic retry per chunk |
 | Auto detect | Pick "Detect language"; the online engine also reports what it detected |
 | Swap | Swap source/target; the translation moves back into the input for round-trip work |
 | Translate | Button, or `Ctrl + Enter` (`⌘ + Enter` on macOS) |
@@ -168,11 +170,26 @@ No npm, no bundler:
 
 ## Known limitations
 
-- 5000 characters per request; the online engine sends 460-char chunks sequentially, so long text is slower
+- 5000 characters per request; the online engine sends 460-char chunks three at a time — roughly 3× faster than the old sequential mode
 - The online engine is bound by MyMemory's free quota — wait a day or switch to the model engine
 - Non-streaming: long input returns all at once
 - Read-aloud uses system TTS; rare languages may have no matching voice
 - Not published on the Chrome Web Store — load it in developer mode
+
+## Changelog
+
+### v1.1.0
+
+- **Concurrent chunking**: the online engine now fetches 460-char chunks 3 at a time instead of sequentially (~3× faster on long text); a failed chunk (network hiccup, HTTP 5xx) is retried once, while deterministic errors such as unsupported languages or quota are not retried
+- **Status bar**: chunk count is now shown after long translations (e.g. `2.1s · online · 6 chunks · English → Chinese`)
+- **Speak toggle**: click the speak chip again to stop playback immediately
+- **Copy fallback**: falls back to a hidden textarea when the async clipboard API is unavailable
+- **Robustness**: `chrome.action.openPopup` and `storage.session` are feature-detected and guarded; older Chrome builds fall back to the badge
+- Fixed quote unwrapping for model output wrapped in quotation marks (now requires a matching pair, so real leading/trailing characters are never stripped)
+
+### v1.0.0
+
+- Initial release: dual engine (free online / self-hosted model), 200 languages, selection right-click translation, read-aloud and export
 
 ## Contributing
 
