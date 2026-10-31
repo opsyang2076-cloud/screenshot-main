@@ -1,0 +1,200 @@
+/* DSH 在线翻译 — 设置页样式 */
+:root {
+  --primary: #4d6bfe;
+  --primary-hover: #3d59e8;
+  --primary-soft: #eef2ff;
+  --bg: #f7f8fb;
+  --surface: #ffffff;
+  --field: #f6f7fb;
+  --border: #e5e7ef;
+  --text: #1d2129;
+  --text-2: #6b7280;
+  --text-3: #9aa3b2;
+  --danger: #f53f3f;
+  --ok: #00a870;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 40px 20px 56px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 640px; margin: 0 auto; }
+
+.head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+
+.logo {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #5a76ff, #3d59e8);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.head h1 { margin: 0; font-size: 18px; font-weight: 600; }
+.sub { margin: 2px 0 0; font-size: 12.5px; color: var(--text-2); }
+
+.card {
+  padding: 24px 24px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(29, 33, 41, .04), 0 12px 32px -18px rgba(29, 33, 41, .18);
+}
+
+.field { margin-bottom: 18px; }
+.field:last-of-type { margin-bottom: 8px; }
+
+label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text); }
+.req { margin-left: 4px; font-size: 11px; font-weight: 500; color: var(--primary); background: var(--primary-soft); padding: 1px 6px; border-radius: 4px; }
+
+input[type="text"], input[type="password"], input[type="number"], input[type="email"], select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(77, 107, 254, .13); }
+input::placeholder { color: var(--text-3); }
+select { cursor: pointer; height: 40px; }
+
+.inline { display: flex; gap: 8px; }
+.inline input { flex: 1; min-width: 0; }
+
+.mini-btn {
+  flex: 0 0 auto;
+  padding: 0 14px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-2);
+  font-size: 13px;
+  transition: color .15s, border-color .15s;
+}
+.mini-btn:hover { color: var(--primary); border-color: var(--primary); }
+
+.hint { margin: 6px 0 0; font-size: 12px; color: var(--text-3); line-height: 1.5; }
+.hint code { padding: 1px 5px; border-radius: 4px; background: var(--field); color: var(--text-2); font-size: 11.5px; }
+
+.actions { display: flex; align-items: center; gap: 10px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+
+button { font-family: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.primary, .secondary, .ghost {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background .15s, color .15s, border-color .15s, transform .1s;
+}
+.primary { border: none; background: var(--primary); color: #fff; }
+.primary:hover { background: var(--primary-hover); }
+.primary:active { transform: translateY(1px); }
+.secondary { border: 1px solid var(--border); background: #fff; color: var(--text); }
+.secondary:hover { border-color: var(--primary); color: var(--primary); }
+.ghost { border: 1px solid transparent; background: transparent; color: var(--text-3); }
+.ghost:hover { color: var(--text); background: var(--field); }
+button[disabled] { opacity: .55; cursor: not-allowed; }
+
+.msg { margin-left: auto; font-size: 12.5px; }
+.msg.ok { color: var(--ok); }
+.msg.err { color: var(--danger); }
+.msg.run { color: var(--text-2); }
+
+.foot { margin-top: 18px; text-align: center; font-size: 12px; color: var(--text-2); }
+.foot p { margin: 4px 0; }
+.muted { color: var(--text-3); }
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+/* ---------- 引擎选择 ---------- */
+.engine-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.engine-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 14px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  text-align: left;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.engine-card:hover { border-color: var(--border-strong, #d5d9e6); background: #fff; }
+.engine-card.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.engine-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.engine-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.engine-card.is-active .engine-title { color: var(--primary); }
+.engine-desc { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+
+.engine-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: .2px;
+}
+.engine-card.is-active .engine-tag { background: var(--primary); }
+
+.opt {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--field);
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+#onlineGroup, #modelGroup { display: block; }
